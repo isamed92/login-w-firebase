@@ -21,7 +21,9 @@ export class AuthService {
     this.leerToken();
   }
 
-  logout() {}
+  logout() {
+    localStorage.removeItem('token');
+  }
 
   login(usuario: UsuarioModel) {
     const authData = {
@@ -31,15 +33,14 @@ export class AuthService {
       returnSecureToken: true
     };
 
-    return this.http.post(
-      `${this.url}/verifyPassword?key=${this.apiKey}`,
-      authData
-    ).pipe(map(
-      res => {
-        this.guardarToken(res['idToken']);
-        return res;
-      }
-    ));
+    return this.http
+      .post(`${this.url}/verifyPassword?key=${this.apiKey}`, authData)
+      .pipe(
+        map(res => {
+          this.guardarToken(res['idToken']);
+          return res;
+        })
+      );
   }
 
   nuevoUsuario(usuario: UsuarioModel) {
@@ -52,19 +53,27 @@ export class AuthService {
 
     return this.http
       .post(`${this.url}/signupNewUser?key=${this.apiKey}`, authData)
-      .pipe(map(
-        res => {
+      .pipe(
+        map(res => {
           console.log('entro en el mapa del rxjs');
           this.guardarToken(res['idToken']);
           return res;
-        }
-      ));
+        })
+      );
   }
 
   private guardarToken(idToken: string) {
     this.userToken = idToken;
     localStorage.setItem('token', idToken);
+
+    let hoy = new Date();
+    hoy.setSeconds(3600);
+
+    localStorage.setItem('expira', hoy.getTime().toString());
   }
+
+
+
   leerToken() {
     if (localStorage.getItem('token')) {
       this.userToken = localStorage.getItem('token');
@@ -73,5 +82,21 @@ export class AuthService {
     }
 
     return this.userToken;
+  }
+
+  estaAutenticado(): boolean {
+
+    if (this.userToken.length > 2 ){
+      return false;
+    } 
+    const  expira = Number(localStorage.getItem('expira'));
+    const expiraDate = new Date();
+    expiraDate.setTime(expira)
+    if( expiraDate > new Date() ) {
+      return true;
+    } else {
+      return false;
+    }
+    // return this.userToken.length > 2;
   }
 }
